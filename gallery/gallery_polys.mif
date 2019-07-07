@@ -1,0 +1,26 @@
+Version 300
+Charset "Neutral"
+Delimiter ","
+Columns 4
+  layer Char(254)
+  layertype Char(254)
+  block Char(254)
+  colour Char(254)
+Data
+
+Region 1
+  4
+2.67147 6.86589
+3.449501 6.86589
+3.449501 6.499699
+2.67147 6.499699
+    Pen (1,2,0)
+    Brush (1,0,16777215)
+Region 1
+  4
+0.897346 5.096047
+1.453427 5.096047
+1.453427 5.496596
+0.897346 5.496596
+    Pen (1,2,0)
+    Brush (1,0,16777215)

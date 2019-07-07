@@ -1,0 +1,13 @@
+Version 300
+Charset "Neutral"
+Delimiter ","
+CoordSys Earth Projection 8, 79, "m", -2, 49, 0.9996012717, 400000, -100000
+Columns 2
+  Line1 Integer
+  Line2 Integer
+Data
+
+Point 1470.90829 -3045.31074
+    Symbol (35,0,12)
+Point 1421.46534 -3024.6654
+    Symbol (35,0,12)
