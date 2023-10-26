@@ -66,28 +66,27 @@ hist(newCars$speed)
 
 First let's load some libraries required later. These should be installed using install.package(<library>) i.e. install.package(rgeos), or if using RSTudio from Tools -> Install Packages.. This chunk will also install rdepthmap from github. Its installation requires devtools which should also be installed. On windows [RTools](https://cran.r-project.org/bin/windows/Rtools/) might also need to be installed.
 ```{r setup, echo = FALSE}
-library(rgeos)
-library(rgdal)
-library(maptools)
+library(sf)
 library(devtools)
 install_github("orange-vertex/rdepthmap")
 library(rdepthmap)
 ```
 
-A quick example: Read and plot the classic barnsbury axial map from a pair of MID/MIF files. Adding "verbose = FALSE" to the readOGR will stop it from displaying diagnostic information while reading the MID/MIF files. The size of the plot can be changed by setting fig.width and fig.height in the chunk options as below.
+A quick example: Read and plot the classic barnsbury axial map from a pair of MID/MIF files. Adding "quiet = TRUE" to st_read will stop it from displaying diagnostic information while reading the MID/MIF files. The size of the plot can be changed by setting fig.width and fig.height in the chunk options as below.
 ```{r, fig.width = 5, fig.height = 5}
-barnsburySmall = readOGR("data/barnsbury/barnsbury_small_axial.mid", verbose = FALSE)
+barnsburySmall = st_read("data/barnsbury/barnsbury_small_axial.mif", geometry_column = 1L, quiet = TRUE)
 plot(barnsburySmall)
 ```
 
-Reading spatial data produces a spatial data.frame (in this case a SpatialLinesDataFrame). These spatial data.frames can be examined to see the data or the coordinates. To see the data append @data to the end (for the coordinates, try @lines) which will print the internal data.frame.
+Reading spatial data produces a spatial data.frame (in this case a SpatialLinesDataFrame). These spatial data.frames can be examined to see the data or the coordinates. To get the data as a data.frame, call the  as.data.frame() function to the end (for the coordinates, try st_coordinates()) which will convert the map to a data.frame.
 ```{r}
-barnsburySmall@data
+as.data.frame(barnsburySmall)
+#st_coordinates(barnsburySmall)
 ```
 
 To see the columns of the data.frame invoke names()
 ```{r}
-names(barnsburySmall@data)
+names(barnsburySmall)
 ```
 
 A simple scatterplot between two of the columns can be achieved with the function hist() and by providing the two columns. The label of the x or y axis can also be provided. To see more plotting parameters type ?plot in the console.
@@ -97,70 +96,69 @@ plot(barnsburySmall$Integration_HH_, barnsburySmall$Choice, xlab = "Integration 
 
 ### Spatial Point Data
 
-Spatial point data such as gatecounts can be loaded in the same way using readOGR().
+Spatial point data such as gatecounts can be loaded in the same way using st_read().
 ```{r, fig.width = 5, fig.height = 5}
-gateCounts = readOGR("data/barnsbury/barnsbury_ped_gatecounts.mid", verbose = FALSE)
+gateCounts = st_read("data/barnsbury/barnsbury_ped_gatecounts.mid", geometry_column = 1L, quiet = TRUE)
 plot(gateCounts)
 ```
 
-An interesting function to apply to point data is the convex hull, a polygon that includes all points and is convex. This can be done using the command gConvexHull.
+An interesting function to apply to point data is the convex hull, a polygon that includes all points and is convex. This can be done using the command st_convex_hull (but first the points need to be converted to multipoints using st_union())
 ```{r, fig.width = 5, fig.height = 5}
-chull = gConvexHull(gateCounts)
+chull = st_convex_hull(st_union(gateCounts))
 plot(chull)
 ```
 
 ### Spatial Line Data
 
-Spatial line data such as axial and segment maps can be loaded in the same way using readOGR() which produces a SpatialLinesDataFrame. Here let's load and plot a larger axial map of the Barnsbury area.
+Spatial line data such as axial and segment maps can be loaded in the same way using st_read() which produces a SpatialLinesDataFrame. Here let's load and plot a larger axial map of the Barnsbury area.
 ```{r, fig.width=6, fig.height=6}
-barnsburyAxial = readOGR("data/barnsbury/barnsbury_axial.mid", verbose = FALSE)
+barnsburyAxial = st_read("data/barnsbury/barnsbury_axial.mid", geometry_column = 1L, quiet = TRUE)
 plot(barnsburyAxial)
 ```
 
-To plot each line a different colour depending on a column from the spatial data frame, we first produce a set of colours, in this case 100 colours from the heat.colors palette (type ?heat.colors to see more palettes contained in R by default). Then we call the cut() function which splits the values of integrations into 100 bins and matches each bin to each colour and thus each line.
+To plot each line a different colour depending on a column from the spatial data frame, provide a column and a palette to the plot function.
 ```{r, fig.width=6, fig.height=6}
-cols = heat.colors(100)
-plot(barnsburyAxial, col = cols[cut(barnsburyAxial$Integration, 100)])
+plot(barnsburyAxial[,'Integration'], pal = heat.colors)
 ```
 
-An interesting function that relates to the SpatialLinesDataFrame is gLength() which gives the sum of lengths of all lines:
+An interesting function that relates to the SpatialLinesDataFrame is st_length() we can then use to get the sum of lengths of all lines:
 ```{r}
-gLength(barnsburyAxial)
+sum(st_length(barnsburyAxial))
 ```
 
-We can also get the length of each line by adding "byid = TRUE" to the gLength function. Here we make a histogram of all line lengths:
+Here we make a histogram of all line lengths:
 ```{r}
-lineLengths = gLength(barnsburyAxial, byid = TRUE)
+lineLengths = st_length(barnsburyAxial, byid = TRUE)
 hist(lineLengths)
 ```
 
-Two plots may also be overlaid by calling them one after the other and providing "add = TRUE" for all plots apart from the first. The first plot defines the plot limits. Here let's plot the large barnsbury map and add the gatecounts loaded previously:
+Two plots may also be overlaid by calling them one after the other and providing "add = TRUE" for all plots apart from the first. For the first plot we need to provide "reset = FALSE" to keep the plot in a mode that allows adding further map elements. The first plot defines the plot limits. Here let's plot the large barnsbury map and add the gatecounts loaded previously:
 ```{r, fig.width=6, fig.height=6}
-plot(barnsburyAxial, col = cols[cut(barnsburyAxial$Integration, 100)])
-plot(gateCounts, add = TRUE)
+plot(barnsburyAxial[, 'Integration'], pal = heat.colors, reset = FALSE)
+plot(gateCounts[,'mov_ped_ph'], add = TRUE)
 ```
 
 If the gatecounts are plotted first, then the plot limits are around them:
 ```{r, fig.width=6, fig.height=6}
-plot(gateCounts, pch = 22)
-plot(barnsburyAxial, col = cols[cut(barnsburyAxial$Integration, 100)], add = TRUE)
+plot(gateCounts[,'mov_ped_ph'], pch = 22, reset = FALSE)
+plot(barnsburyAxial[, 'Integration'], pal = heat.colors, add = TRUE)
 ```
 
 ### Spatial Polygon Data
 
-Spatial polygon data such as urban plots and building rooms can be loaded in the same way using readOGR() which produces a SpatialPolygonsDataFrame. Here let's load and plot some generated urban plots of the Barnsbury area.
+Spatial polygon data such as urban plots and building rooms can be loaded in the same way using st_read() which produces a SpatialPolygonsDataFrame. Here let's load and plot some generated urban plots of the Barnsbury area.
 ```{r, fig.width=6, fig.height=6}
-barnsburyPlots = readOGR("data/barnsbury/barnsbury_plots.mid", verbose = FALSE)
+barnsburyPlots = st_read("data/barnsbury/barnsbury_plots.mid", geometry_column = 1L, quiet = TRUE)
 plot(barnsburyPlots, col = "red")
 ```
 
-Two useful functions for polygon data are gCentroid() which provides a SpatialPointsDataFrame with the centroids of the polygons and gArea() which gives the area of the polygons. These should be called with "byid = TRUE" to give the centroid and area for each polygon, otherwise they will provide a single point and number for the whole set of polygons. Here we generate the centroid and area and plot the polygons coloured by area with the centroids on top.
+Two useful functions for polygon data are st_centroid() which provides a SpatialPointsDataFrame with the centroids of the polygons and st_area() which gives the area of the polygons. Here we generate the centroid and area and plot the polygons coloured by area with the centroids on top.
 Comments that will not be interpreted as code may be placed inside the chunk by starting a line with #
 ```{r, fig.width=6, fig.height=6}
-plotCentroids = gCentroid(barnsburyPlots, byid = TRUE)
-plotAreas = gArea(barnsburyPlots, byid = TRUE)
+plotCentroids = st_centroid(st_geometry(barnsburyPlots))
+barnsburyPlots[,'area'] = st_area(barnsburyPlots)
 cols = rev(heat.colors(100))
-plot(barnsburyPlots, col = cols[cut(plotAreas, 100)])
+plot(barnsburyPlots[,'area'], col = cols[cut(barnsburyPlots[['area']], 100)], reset = FALSE)
 # pch is the shape of the points
 # cex is the size of the points
 plot(plotCentroids, add = TRUE, pch = 15, cex = 0.5, col = "black")
@@ -171,6 +169,11 @@ plot(plotCentroids, add = TRUE, pch = 15, cex = 0.5, col = "black")
 Spatial pixel data such as data from Visibility Graph Analysis (VGA) can be loaded in various ways to produce a SpatialPixelsDataFrame. Spatial pixels are essentially spatial points that are placed on a grid. To mark a SpatialPointsDataFrame as a SpatialPixelsDataFrame we need to call "gridded(SpatialPointsDataFrame) = TRUE". Here, we'll load the point data from a CSV as plain tabular data and then convert the plain data.frame to a SpatialPointsDataFrame using "coordinates(data.frame) = ~xcolumn+ycolumn". Here let's load the classic National Gallery VGA.
 ```{r, fig.width=8}
 galleryVGA = read.csv("data/gallery/gallery_vga.csv")
+
+#galleryVGA = st_read("data/gallery/gallery_vga.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"));
+
+#plot(galleryVGA[,'Point.First.Moment'])
+
 coordinates(galleryVGA) = ~x+y # converts data frame to spatialpointsdataframe
 gridded(galleryVGA) = TRUE
 names(galleryVGA) # print the column names of galleryVGA
@@ -210,9 +213,8 @@ names(barnsburyAxialAnalysed)
 
 Let's plot the newly analysed map, this time using one of depthmap's palettes, provided by the package (Axmanesque is the default palette in depthmapX). We will also make the background of the map black using par(bg = "black").
 ```{r, fig.width=6, fig.height=6}
-cols = rdepthmap::depthmap.axmanesque.colour(100)
 par(bg = "black")
-plot(barnsburyAxialAnalysed, col = cols[cut(barnsburyAxialAnalysed$Choice, 100)])
+plot(barnsburyAxialAnalysed[,'Choice'], pal = rdepthmap::depthmap.axmanesque.colour)
 ```
 
 ### rdepthmap: Segment analysis
@@ -232,18 +234,17 @@ names(segmentAnalysed)
 
 Let's then plot the segment map, using depthmapX "classic" palette:
 ```{r, fig.width=6, fig.height=6}
-cols = rdepthmap::depthmap.classic.colour(100)
 par(bg = "black")
-plot(segmentAnalysed, col = cols[cut(segmentAnalysed$T1024_Integration, 100)])
+plot(segmentAnalysed[,'T1024_Integration'], pal = rdepthmap::depthmap.classic.colour)
 ```
 
 Another typical step of the workflow is to identify the "Integration core". That is a subset of the lines the integration of which is above 90% of the overall integration of all lines. The rdepthmap package provides the function rdepthmap::getTopFeatures() for exactly this purpose, which will return the subset as a SpatialLinesDataFrame. Here, the integration core is plotted in thicker lines above the barnsbury segment model
 ```{r, fig.width=6, fig.height=6}
 integrationCore = rdepthmap::getTopFeatures(segmentAnalysed, "T1024_Integration", 0.1)
-cols = rdepthmap::depthmap.axmanesque.colour(100)
+cols = (100)
 par(bg = "black")
-plot(segmentAnalysed[, "T1024_Integration"], col = cols[cut(segmentAnalysed$T1024_Integration, 100)], main = "Segment map with Integration core")
-plot(integrationCore, add = TRUE, col = "red", lwd = 4)
+plot(segmentAnalysed[, "T1024_Integration"], pal = rdepthmap::depthmap.axmanesque.colour, main = "Segment map with Integration core", reset = FALSE)
+plot(integrationCore[,1], add = TRUE, col = "red", lwd = 4)
 ```
 
 
@@ -257,8 +258,8 @@ Finally, we may perform VGA directly from R, by loading a floorplan into a graph
 
 The next chunk loads and plots a simplified National Gallery plan provided here as a pair of MIF/MID files. For more advanced floor-plan loading with more elements, look at the package [dxfspatial](https://github.com/orange-vertex/dxfspatial)
 ```{r, fig.width=8}
-galleryLines = readOGR("data/gallery/gallery_lines.mid", verbose = FALSE)
-plot(galleryLines)
+galleryLines = st_read("data/gallery/gallery_lines.mid", geometry_column = 1L, quiet = TRUE)
+plot(galleryLines[,1])
 ```
 
 The next chunk imports the gallery SpatialLinesDataFrame into a GRAPH file, creates a grid with a cell size of 0.04, fills the grid starting from the point 2.86, 6.69 and then makes the graph. Finally, the VGA data is imported into R using rdepthmap::getPointmapData() and plotted.
@@ -300,29 +301,31 @@ plot(galleryAgents[, "Gate.Counts"])
 
 Finally, we will load some room data to compare to the VGA. More spcifically we will test the average Visual Mean Depth of two galleries. First let's load the galleries as a SpatialPolygonsDataFrame:
 ```{r, fig.width=8}
-galleryFunction = readOGR("data/gallery/gallery_polys.mid", verbose = FALSE)
-plot(galleryVGA[, "Visual.Mean.Depth"])
-plot(galleryFunction, add = TRUE, col = "red")
+galleryFunction = st_read("data/gallery/gallery_polys.mid", geometry_column = 1L, quiet = TRUE)
+plot(galleryVGA[, "Visual.Mean.Depth"], reset = FALSE)
+plot(galleryFunction[,1], add = TRUE, col = "red")
 ```
 
 Then, let's calculate which pixels overlap with which polygons, and aggregate per polygon. The resulting table is the average Visual Mean Depth of each gallery.
 ```{r}
-overlapsDF = over(galleryVGA[, "Visual.Mean.Depth"], galleryFunction)
-aggregate(galleryVGA$Visual.Integration..HH., by = list(overlapsDF$layer), mean)
+overlapsDF = st_within(sf::st_as_sf(galleryVGA), galleryFunction, sparse = F)
+overlapsDF = apply(overlapsDF, 1, function(row) { ifelse(any(row), which(row), NA)})
+aggregate(galleryVGA$Visual.Integration..HH., by = list(overlapsDF), mean)
 ```
 
 In the same vain, let's load some observed activity data and do a similar aggregation:
 First let's load the snapshot data as a SpatialPointsDataFrame and add it to the plot as white dots.
 ```{r, fig.width=8}
-gallerySnapshot = readOGR("data/gallery/gallery_snapshot.mid", verbose = FALSE)
+gallerySnapshot = st_read("data/gallery/gallery_snapshot.mid", geometry_column = 1L, quiet = TRUE)
 plot(galleryVGA[, "Visual.Mean.Depth"])
 plot(gallerySnapshot, add = TRUE, pch = 20, col = "white")
 ```
 
 And then let's find the number of people in each gally per activity:
 ```{r}
-overlapsDF = over(gallerySnapshot[, "activity"], galleryFunction)
-aggregate(gallerySnapshot$activity, by = list(overlapsDF$layer, gallerySnapshot$activity), length)
+overlapsDF = st_within(sf::st_as_sf(gallerySnapshot), galleryFunction, sparse = F)
+overlapsDF = apply(overlapsDF, 1, function(row) { ifelse(any(row), which(row), NA)})
+aggregate(gallerySnapshot$activity, by = list(overlapsDF, gallerySnapshot$activity), length)
 ```
 
 ### Simple correlation
@@ -346,17 +349,14 @@ segmentAnalysed = rdepthmap::getShapeGraph("data/barnsburySegment.graph")
 
 Plot the segment map with the gatecounts loaded earlier
 ```{r, fig.width=6, fig.height=6}
-cols = depthmap.axmanesque.colour(100)
-plot(segmentAnalysed, col = cols[cut(segmentAnalysed$T1024_Choice, 100)])
-plot(gateCounts, add = TRUE)
+plot(segmentAnalysed[, 'T1024_Choice'], pal = depthmap.axmanesque.colour, reset=F)
+plot(gateCounts[,1], add = TRUE)
 ```
 
 Then match the gatecount points to a line. Each point is assigned here to a single line and vice versa using the command rdepthmap::matchPointsToLines(). The gatecount data are then transferred as a column back into the SpatialLinesDataFrame using cbind()
 ```{r}
-proj4string(segmentAnalysed) = CRS("")
-proj4string(gateCounts) = CRS("")
 matchedLines = rdepthmap::matchPointsToLines(gateCounts, segmentAnalysed)
-segmentAnalysed@data = cbind(segmentAnalysed@data, matchedLines)
+segmentAnalysed = cbind(segmentAnalysed, matchedLines)
 ```
 
 A simple linear model can then be carried out using lm() to create the model and summary() to see the statistics:
