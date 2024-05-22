@@ -68,7 +68,7 @@ First let's load some libraries required later. These should be installed using 
 ```{r setup, echo = FALSE}
 library(sf)
 library(devtools)
-install_github("orange-vertex/rdepthmap")
+install_github("pklampros/rdepthmap")
 library(rdepthmap)
 ```
 
@@ -256,7 +256,7 @@ plot(integrationCore[,1], add = TRUE, col = "red", lwd = 4)
 
 Finally, we may perform VGA directly from R, by loading a floorplan into a graph, file, defining and filling a grid and carrying out the analysis.
 
-The next chunk loads and plots a simplified National Gallery plan provided here as a pair of MIF/MID files. For more advanced floor-plan loading with more elements, look at the package [dxfspatial](https://github.com/orange-vertex/dxfspatial)
+The next chunk loads and plots a simplified National Gallery plan provided here as a pair of MIF/MID files. For more advanced floor-plan loading with more elements, look at the package [dxfspatial](https://github.com/pklampros/dxfspatial)
 ```{r, fig.width=8}
 galleryLines = st_read("data/gallery/gallery_lines.mid", geometry_column = 1L, quiet = TRUE)
 plot(galleryLines[,1])
