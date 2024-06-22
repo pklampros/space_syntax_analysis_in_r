@@ -1,0 +1,87 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, echo = FALSE}
+library(alcyon)
+```
+
+```{r}
+officeSf = st_read("data/office/office_plan.mif",
+                   geometry_column = 1L, quiet = TRUE)
+officeSeatsSf = st_read("data/office/office_seats.mif",
+                        geometry_column = 1L, quiet = TRUE)
+officeSeatsDirectionSf = st_read("data/office/office_seats_direction.mif",
+                                 geometry_column = 1L, quiet = TRUE)
+officeSeatsDirectionSf = officeSeatsDirectionSf[match(officeSeatsDirectionSf$id,
+                                                      officeSeatsSf$id), ]
+```
+
+```{r}
+plot(officeSf, reset = F)
+plot(officeSeatsSf, add = T, col = "red")
+plot(officeSeatsDirectionSf, add = T, pch = 4, col = "blue")
+```
+```{r}
+plot(officeSf[officeSf$Layer %in% c("wall", "concr", "0", "floor"),])
+```
+
+```{r}
+boundaryMap = as(officeSf[officeSf$Layer %in% c("wall", "concr", "0", "floor"),
+                          c()], "ShapeMap")
+seatCoords = st_coordinates(officeSeatsSf)
+directionCoords = st_coordinates(officeSeatsDirectionSf)
+
+angles <- atan2(directionCoords[, "Y"] - seatCoords[, "Y"],
+                        directionCoords[, "X"] - seatCoords[, "X"])
+
+angles <- ifelse(angles < 0.0, 2 * pi  + angles, angles)
+
+isoPolygons = isovist(boundaryMap,
+                      x = seatCoords[, "X"],
+                      y = seatCoords[, "Y"],
+                      angle = angles,
+                      viewAngle = pi / 2)
+
+```
+
+```{r}
+plot(officeSf, col = "gray", reset = F)
+plot(isoPolygons[10, "Isovist Area"], add = T)
+```
+
+We need to increase by 1, as igraph does not like vertices to start from 0
+```{r}
+edges = lapply(1:33, function(idx) {
+  fromId = officeSeatsSf[idx, ]$id
+  toId = officeSeatsSf[st_within(officeSeatsSf, isoPolygons[idx, ],
+                                 sparse = F), ]$id
+  if(length(toId) > 0) {
+     return(cbind(fromId, toId))
+  } else {
+    return(c())
+  }
+})
+
+edgeList = do.call(rbind, edges)
+
+isovistGraph = igraph::graph_from_edgelist(edgeList + 1)
+
+```
+
+```{r}
+
+plot(officeSf, col = "gray", reset = F)
+plot(isovistGraph,
+     layout=st_coordinates(st_centroid(officeSeatsSf$geometry)),
+     vertex.size = igraph::degree(isovistGraph) * 5000,
+     vertex.label.cex = 0.75,
+     vertex.label.dist = 300,
+     edge.arrow.size = 0.5,
+     edge.width = igraph::edge_betweenness(isovistGraph) * 0.1,
+     edge.color = "blue",
+     rescale = F,
+     add = T)
+```
+

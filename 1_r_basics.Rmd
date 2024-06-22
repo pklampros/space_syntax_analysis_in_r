@@ -1,0 +1,62 @@
+---
+title: "Space Syntax analysis in R"
+subtitle: "1. R Basics"
+author:
+- name: "Petros Koutsolampros"
+- name: "Kimon Krenz"
+output: html_notebook
+---
+
+This document is part of a workshop that presented a workflow for working with spatial data common to the space syntax field in the R programming language. The workshop also introduced participants to the rdepthmap package by Petros Koutsolampros, Fani Kostourou and Kimon Krenz. It aimed to make participants familiar with 1) importing spatial data for urban and building scale, 2) running space syntax analysis with the rdepthmap package and 3) managing and plotting these and other related datasets.
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. While the typical purpose of R Markdown documents is to produce reports, this document serves mainly as a relatively visual guide through the code written in the workshop by the tutors.
+
+There are three parts to this:
+1. Basic functionality such as data.frames, plotting, making histograms etc. (this part)
+2. Spatial data and four of its forms:
+  - Points (SpatialPointsDataFrame), typically used for observations data such as counts
+  - Lines (SpatialPointsDataFrame), as the usual axial/segment networks used in space syntax
+  - Polygons (SpatialPointsDataFrame), as plots of land or areas and rooms in buildings
+  - Pixels (SpatialPointsDataFrame), equivalent to the GIS Raster, as used in Visibility Graph Analysis
+3. Space Syntax Analysis using the alcyon package
+
+Code is only "run" within chunks. Outside the chunk (like this text) the text is interpreted as Markdown Text (a simple annotation format).
+Given that the aim of this document is to allow for reproducable workflows, all results and graphs should be created when all the chunks are run in order.
+Any function used in this document can be found in the Help documentation or by calling the name of the function with a questionmark before it (i.e. ?plot)
+
+## Basic functionality
+
+A data.frame is something akin to an excel sheet, in that it contains tabular data. R provides a few example data.frames, one of which is "cars". Running the below chunk will print the data.frame underneath.
+```{r}
+cars
+```
+
+As this data.frame contains only two variables, plotting it directly will produce a simple scatter plot
+```{r}
+plot(cars)
+```
+
+We can see the variable names in the cars data.frame by calling the command names()
+```{r}
+names(cars)
+```
+
+To make a simple histogram of one of the variables use the command hist()
+```{r}
+hist(cars$speed)
+```
+
+We can load our own data.frame by going to a spreadsheet application (such as excel), creating a few data points and exporting the sheet to a CSV. Then, we can load that CSV in R using read.csv()
+```{r}
+newCars <- read.csv("data/newCars.csv")
+```
+
+While reading the CSV, R might realise that one (or more) of the columns is categorical (called a factor variable in R) and will thus name it as such (under the column name when printing the data.frame)
+```{r}
+newCars
+```
+
+In a similar fashion, doing a histogram of one of the variables:
+```{r}
+hist(newCars$speed)
+```

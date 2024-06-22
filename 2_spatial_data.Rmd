@@ -1,0 +1,140 @@
+---
+title: "Space Syntax analysis in R"
+subtitle: "2. Spatial Data"
+author:
+- name: "Petros Koutsolampros"
+- name: "Kimon Krenz"
+output: html_notebook
+---
+
+This document is part of a workshop that presented a workflow for working with spatial data common to the space syntax field in the R programming language. The workshop also introduced participants to the rdepthmap package by Petros Koutsolampros, Fani Kostourou and Kimon Krenz. It aimed to make participants familiar with 1) importing spatial data for urban and building scale, 2) running space syntax analysis with the rdepthmap package and 3) managing and plotting these and other related datasets.
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. While the typical purpose of R Markdown documents is to produce reports, this document serves mainly as a relatively visual guide through the code written in the workshop by the tutors.
+
+There are three parts to this:
+1. Basic functionality such as data.frames, plotting, making histograms etc.
+2. Spatial data and four of its forms (this part):
+  - Points (SpatialPointsDataFrame), typically used for observations data such as counts
+  - Lines (SpatialPointsDataFrame), as the usual axial/segment networks used in space syntax
+  - Polygons (SpatialPointsDataFrame), as plots of land or areas and rooms in buildings
+  - Pixels (SpatialPointsDataFrame), equivalent to the GIS Raster, as used in Visibility Graph Analysis
+3. Space Syntax Analysis using the alcyon package
+
+Code is only "run" within chunks. Outside the chunk (like this text) the text is interpreted as Markdown Text (a simple annotation format).
+Given that the aim of this document is to allow for reproducable workflows, all results and graphs should be created when all the chunks are run in order.
+Any function used in this document can be found in the Help documentation or by calling the name of the function with a questionmark before it (i.e. ?plot)
+
+## Loading spatial data
+
+First let's load some libraries required later. These should be installed using install.package(<library>) i.e. install.package(sf), or if using RSTudio from Tools -> Install Packages..
+```{r setup, echo = FALSE}
+library(sf)
+```
+
+A quick example: Read and plot the classic barnsbury axial map from a pair of MID/MIF files. Adding "quiet = TRUE" to st_read will stop it from displaying diagnostic information while reading the MID/MIF files. The size of the plot can be changed by setting fig.width and fig.height in the chunk options as below.
+```{r, fig.width = 5, fig.height = 5}
+barnsburySmall = st_read("data/barnsbury/barnsbury_small_axial.mif", geometry_column = 1L, quiet = TRUE)
+plot(barnsburySmall)
+```
+
+Reading spatial data produces a spatial data.frame (in this case a SpatialLinesDataFrame). These spatial data.frames can be examined to see the data or the coordinates. To get the data as a data.frame, call the  as.data.frame() function to the end (for the coordinates, try st_coordinates()) which will convert the map to a data.frame.
+```{r}
+as.data.frame(barnsburySmall)
+#st_coordinates(barnsburySmall)
+```
+
+To see the columns of the data.frame invoke names()
+```{r}
+names(barnsburySmall)
+```
+
+A simple scatterplot between two of the columns can be achieved with the function hist() and by providing the two columns. The label of the x or y axis can also be provided. To see more plotting parameters type ?plot in the console.
+```{r}
+plot(barnsburySmall$Integration_HH_, barnsburySmall$Choice, xlab = "Integration (HH)")
+```
+
+### Spatial Point Data
+
+Spatial point data such as gatecounts can be loaded in the same way using st_read().
+```{r, fig.width = 5, fig.height = 5}
+gateCounts = st_read("data/barnsbury/barnsbury_ped_gatecounts.mid", geometry_column = 1L, quiet = TRUE)
+plot(gateCounts)
+```
+
+An interesting function to apply to point data is the convex hull, a polygon that includes all points and is convex. This can be done using the command st_convex_hull (but first the points need to be converted to multipoints using st_union())
+```{r, fig.width = 5, fig.height = 5}
+chull = st_convex_hull(st_union(gateCounts))
+plot(chull)
+```
+
+### Spatial Line Data
+
+Spatial line data such as axial and segment maps can be loaded in the same way using st_read() which produces a SpatialLinesDataFrame. Here let's load and plot a larger axial map of the Barnsbury area.
+```{r, fig.width=6, fig.height=6}
+barnsburyAxial = st_read("data/barnsbury/barnsbury_axial.mid", geometry_column = 1L, quiet = TRUE)
+plot(barnsburyAxial)
+```
+
+To plot each line a different colour depending on a column from the spatial data frame, provide a column and a palette to the plot function.
+```{r, fig.width=6, fig.height=6}
+plot(barnsburyAxial[,'Integration'], pal = heat.colors)
+```
+
+An interesting function that relates to the SpatialLinesDataFrame is st_length() we can then use to get the sum of lengths of all lines:
+```{r}
+sum(st_length(barnsburyAxial))
+```
+
+Here we make a histogram of all line lengths:
+```{r}
+lineLengths = st_length(barnsburyAxial, byid = TRUE)
+hist(lineLengths)
+```
+
+Two plots may also be overlaid by calling them one after the other and providing "add = TRUE" for all plots apart from the first. For the first plot we need to provide "reset = FALSE" to keep the plot in a mode that allows adding further map elements. The first plot defines the plot limits. Here let's plot the large barnsbury map and add the gatecounts loaded previously:
+```{r, fig.width=6, fig.height=6}
+plot(barnsburyAxial[, 'Integration'], pal = heat.colors, reset = FALSE)
+plot(gateCounts[,'mov_ped_ph'], add = TRUE)
+```
+
+If the gatecounts are plotted first, then the plot limits are around them:
+```{r, fig.width=6, fig.height=6}
+plot(gateCounts[,'mov_ped_ph'], pch = 22, reset = FALSE)
+plot(barnsburyAxial[, 'Integration'], pal = heat.colors, add = TRUE)
+```
+
+### Spatial Polygon Data
+
+Spatial polygon data such as urban plots and building rooms can be loaded in the same way using st_read() which produces a SpatialPolygonsDataFrame. Here let's load and plot some generated urban plots of the Barnsbury area.
+```{r, fig.width=6, fig.height=6}
+barnsburyPlots = st_read("data/barnsbury/barnsbury_plots.mid", geometry_column = 1L, quiet = TRUE)
+plot(barnsburyPlots, col = "red")
+```
+
+Two useful functions for polygon data are st_centroid() which provides a SpatialPointsDataFrame with the centroids of the polygons and st_area() which gives the area of the polygons. Here we generate the centroid and area and plot the polygons coloured by area with the centroids on top.
+Comments that will not be interpreted as code may be placed inside the chunk by starting a line with #
+```{r, fig.width=6, fig.height=6}
+plotCentroids = st_centroid(st_geometry(barnsburyPlots))
+barnsburyPlots[,'area'] = st_area(barnsburyPlots)
+cols = rev(heat.colors(100))
+plot(barnsburyPlots[,'area'], col = cols[cut(barnsburyPlots[['area']], 100)], reset = FALSE)
+# pch is the shape of the points
+# cex is the size of the points
+plot(plotCentroids, add = TRUE, pch = 15, cex = 0.5, col = "black")
+```
+
+### Spatial Pixel Data
+
+Spatial pixel data such as data from Visibility Graph Analysis (VGA) can be loaded in various ways to produce a SpatialPixelsDataFrame. Spatial pixels are essentially spatial points that are placed on a grid. To mark a SpatialPointsDataFrame as a SpatialPixelsDataFrame we need to call "gridded(SpatialPointsDataFrame) = TRUE". Here, we'll load the point data from a CSV as plain tabular data and then convert the plain data.frame to a SpatialPointsDataFrame using "coordinates(data.frame) = ~xcolumn+ycolumn". Here let's load the classic National Gallery VGA.
+```{r, fig.width=8}
+galleryVGA = read.csv("data/gallery/gallery_vga.csv")
+
+#galleryVGA = st_read("data/gallery/gallery_vga.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"));
+
+#plot(galleryVGA[,'Point.First.Moment'])
+
+coordinates(galleryVGA) = ~x+y # converts data frame to spatialpointsdataframe
+gridded(galleryVGA) = TRUE
+names(galleryVGA) # print the column names of galleryVGA
+plot(galleryVGA[, "Visual.Mean.Depth"])
+```

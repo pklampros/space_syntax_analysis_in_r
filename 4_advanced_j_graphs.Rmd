@@ -1,0 +1,49 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, echo = FALSE}
+library(alcyon)
+```
+
+```{r}
+barnsburySmall = st_read("data/barnsbury/barnsbury_small_axial.mif",
+                         geometry_column = 1L, quiet = TRUE)
+barnsburySmallAxial = as(barnsburySmall, "AxialShapeGraph")
+```
+
+
+We need to increase by 1, as igraph does not like vertices to start from 0
+```{r, fig.width=6, fig.height=6}
+axialConections = alcyon::connections(barnsburySmallAxial)
+axialGraph = igraph::graph_from_edgelist(cbind(axialConections$from + 1,
+                                               axialConections$to + 1))
+par(mar = c(0,0,0,0))
+plot(axialGraph,
+     layout=layout_as_tree(graph = axialGraph, root = 4, flip.y = F),
+     vertex.size = 5,
+     vertex.label.cex = 0.75,
+     vertex.label.dist = 1,
+     edge.arrow.size = 0.1)
+```
+
+```{r, fig.width=6, fig.height=6}
+axialConections = alcyon::connections(barnsburySmallAxial)
+axialGraph = igraph::graph_from_edgelist(cbind(axialConections$from + 1,
+                                               axialConections$to + 1))
+
+plot(barnsburySmallAxial[,'Choice'],
+     pal = rdepthmap::depthmap.axmanesque.colour,
+     reset = F)
+plot(axialGraph,
+     layout=st_coordinates(st_centroid(barnsburySmall$geometry)),
+     vertex.size = 1000,
+     vertex.label.cex = 0.75,
+     vertex.label.dist = 300,
+     edge.arrow.size = 0.5,
+     edge.color = "red",
+     rescale = F,
+     add = T)
+```
+
