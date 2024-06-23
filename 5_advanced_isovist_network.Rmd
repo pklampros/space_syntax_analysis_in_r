@@ -1,12 +1,29 @@
 ---
-title: "R Notebook"
+title: "Space Syntax analysis in R"
+subtitle: "5. Advanced: Isovist networks"
+author:
+- name: "Petros Koutsolampros"
+- name: "Chrystalla Psathiti"
 output: html_notebook
 ---
 
+This document is the fourth part of a workshop that presents a workflow for working with spatial data common to the space syntax field in the R programming language. Find all parts here:
+1. [Basic functionality of R](./1_r_basics.Rmd)
+2. [Spatial data and its forms](./2_spatial_data.Rmd)
+3. [Space Syntax Analysis using the alcyon package](./3_space_syntax_analysis.Rmd)
+4. [Advanced: Graphs and J-Graphs](./4_advanced_j_graphs.Rmd)
+5. [Advanced: Isovist networks](./5_advanced_isovist_network.Rmd)
+
+## Isovist networks
+
+Another interesting use of graphs in Space Syntax is to create isovist networks i.e. networks of intervisible locations. This has been applied to identify properties of different seats in an open-plan office space, for example by Beck, M. P. (2015) at their paper: “Slicing the Cake: An Isovist-Based Analysis of Computerised Workplace Configuration
+
+First, load the library:
 ```{r setup, echo = FALSE}
 library(alcyon)
 ```
 
+Then, load the office plan (officeSf), the location of the seats (officeSeatsSf) and the location of the points of directions (points in front of seats, officeSeatsDirectionSf). Because the directions and the seats don't have the same order, we will re-order the directions by matching their ID on the seat ID.
 ```{r}
 officeSf = st_read("data/office/office_plan.mif",
                    geometry_column = 1L, quiet = TRUE)
@@ -18,15 +35,18 @@ officeSeatsDirectionSf = officeSeatsDirectionSf[match(officeSeatsDirectionSf$id,
                                                       officeSeatsSf$id), ]
 ```
 
+Plot everything, with the plan underneath:
 ```{r}
 plot(officeSf, reset = F)
 plot(officeSeatsSf, add = T, col = "red")
 plot(officeSeatsDirectionSf, add = T, pch = 4, col = "blue")
 ```
+
+Find out which of the elements of the floor plans we need to be "blocking" the view (walls, columns etc.) and only select those, leaving out low elements (furniture layer) or transparent ones (glass layer)
 ```{r}
 plot(officeSf[officeSf$Layer %in% c("wall", "concr", "0", "floor"),])
 ```
-
+Then, calculate the angles between the seat point and the direction point and provide that to the alcyon::isovist() function so that it can give us the isovist polygons.
 ```{r}
 boundaryMap = as(officeSf[officeSf$Layer %in% c("wall", "concr", "0", "floor"),
                           c()], "ShapeMap")
@@ -46,12 +66,13 @@ isoPolygons = isovist(boundaryMap,
 
 ```
 
+We can plot one or more isovists on the floorplan.
 ```{r}
 plot(officeSf, col = "gray", reset = F)
 plot(isoPolygons[10, "Isovist Area"], add = T)
 ```
 
-We need to increase by 1, as igraph does not like vertices to start from 0
+Here, use the function sf::st_within() to tell us which points are within which polygons (i.e. which seats are within other seats' field of view). We need to increase by 1, as igraph does not like vertices to start from 0
 ```{r}
 edges = lapply(1:33, function(idx) {
   fromId = officeSeatsSf[idx, ]$id
@@ -70,11 +91,12 @@ isovistGraph = igraph::graph_from_edgelist(edgeList + 1)
 
 ```
 
+Plot the graph, providing a layout where the nodes are centered on each seat.
 ```{r}
 
 plot(officeSf, col = "gray", reset = F)
 plot(isovistGraph,
-     layout=st_coordinates(st_centroid(officeSeatsSf$geometry)),
+     layout=st_coordinates(officeSeatsSf$geometry),
      vertex.size = igraph::degree(isovistGraph) * 5000,
      vertex.label.cex = 0.75,
      vertex.label.dist = 300,

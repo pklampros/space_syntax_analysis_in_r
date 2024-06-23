@@ -1,12 +1,29 @@
 ---
-title: "R Notebook"
+title: "Space Syntax analysis in R"
+subtitle: "4. Advanced: Graphs and J-Graphs"
+author:
+- name: "Petros Koutsolampros"
+- name: "Chrystalla Psathiti"
 output: html_notebook
 ---
 
+This document is the fourth part of a workshop that presents a workflow for working with spatial data common to the space syntax field in the R programming language. Find all parts here:
+1. [Basic functionality of R](./1_r_basics.Rmd)
+2. [Spatial data and its forms](./2_spatial_data.Rmd)
+3. [Space Syntax Analysis using the alcyon package](./3_space_syntax_analysis.Rmd)
+4. [Advanced: Graphs and J-Graphs](./4_advanced_j_graphs.Rmd)
+5. [Advanced: Isovist networks](./5_advanced_isovist_network.Rmd)
+
+## Graphs and J-Graphs
+
+Graphs are central to Space Syntax, and are usually under all related analytical software. The alcyon package allows for extracting the graph from the maps and displaying it in different ways, even in a tree layout, commonly known in Space Syntax as a J-Graph.
+
+First load the library
 ```{r setup, echo = FALSE}
 library(alcyon)
 ```
 
+Read the small barnsbury axial map and convert it to an Axial Shape Graph (so that the graph is created):
 ```{r}
 barnsburySmall = st_read("data/barnsbury/barnsbury_small_axial.mif",
                          geometry_column = 1L, quiet = TRUE)
@@ -14,11 +31,15 @@ barnsburySmallAxial = as(barnsburySmall, "AxialShapeGraph")
 ```
 
 
-We need to increase by 1, as igraph does not like vertices to start from 0
+We can then extract the connections i.e. which lines cross, using alcyon::connections(). Constructing the graph can then be done with igraph::graph_from_edgelist(). We need to increase by 1, as igraph does not like vertices to start from 0
 ```{r, fig.width=6, fig.height=6}
 axialConections = alcyon::connections(barnsburySmallAxial)
 axialGraph = igraph::graph_from_edgelist(cbind(axialConections$from + 1,
                                                axialConections$to + 1))
+```
+
+We may then plot the new axial graph using plot(), and giving it various parameters. To get a J-Graph we need to tell the plot function to plot the graph as a tree, using our axial graph and starting from root 4. We also need to flip the y axis to get a traditional J-Graph, as the plot, by default, will put the root at the top.
+```{r, fig.width=6, fig.height=6}
 par(mar = c(0,0,0,0))
 plot(axialGraph,
      layout=layout_as_tree(graph = axialGraph, root = 4, flip.y = F),
@@ -28,13 +49,14 @@ plot(axialGraph,
      edge.arrow.size = 0.1)
 ```
 
+Finally, we can use other layouts (see ?igraph::layouts), but perhaps the second most useful layout is the map itself, with the map under it:
 ```{r, fig.width=6, fig.height=6}
 axialConections = alcyon::connections(barnsburySmallAxial)
 axialGraph = igraph::graph_from_edgelist(cbind(axialConections$from + 1,
                                                axialConections$to + 1))
 
 plot(barnsburySmallAxial[,'Choice'],
-     pal = rdepthmap::depthmap.axmanesque.colour,
+     pal = alcyon::depthmap.axmanesque.colour,
      reset = F)
 plot(axialGraph,
      layout=st_coordinates(st_centroid(barnsburySmall$geometry)),

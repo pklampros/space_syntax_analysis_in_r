@@ -7,22 +7,33 @@ author:
 output: html_notebook
 ---
 
-This document is part of a workshop that presented a workflow for working with spatial data common to the space syntax field in the R programming language. The workshop also introduced participants to the rdepthmap package by Petros Koutsolampros, Fani Kostourou and Kimon Krenz. It aimed to make participants familiar with 1) importing spatial data for urban and building scale, 2) running space syntax analysis with the rdepthmap package and 3) managing and plotting these and other related datasets.
+This document is the first part of a workshop that presents a workflow for working with spatial data common to the space syntax field in the R programming language. The workshop also introduces participants to the alcyon package (originally rdepthmap) by Petros Koutsolampros, Fani Kostourou and Kimon Krenz. It aims to make participants familiar with 1) importing spatial data for urban and building scale, 2) running space syntax analysis with the alcyon package and 3) managing and plotting these and other related datasets. A few advanced concepts are also included, for making j-graphs and isovist-networks.
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. While the typical purpose of R Markdown documents is to produce reports, this document serves mainly as a relatively visual guide through the code written in the workshop by the tutors.
 
-There are three parts to this:
-1. Basic functionality such as data.frames, plotting, making histograms etc. (this part)
-2. Spatial data and four of its forms:
-  - Points (SpatialPointsDataFrame), typically used for observations data such as counts
-  - Lines (SpatialPointsDataFrame), as the usual axial/segment networks used in space syntax
-  - Polygons (SpatialPointsDataFrame), as plots of land or areas and rooms in buildings
-  - Pixels (SpatialPointsDataFrame), equivalent to the GIS Raster, as used in Visibility Graph Analysis
-3. Space Syntax Analysis using the alcyon package
+There are multiple parts to this workshop:
 
-Code is only "run" within chunks. Outside the chunk (like this text) the text is interpreted as Markdown Text (a simple annotation format).
-Given that the aim of this document is to allow for reproducable workflows, all results and graphs should be created when all the chunks are run in order.
-Any function used in this document can be found in the Help documentation or by calling the name of the function with a questionmark before it (i.e. ?plot)
+1. [Basic functionality of R](./1_r_basics.Rmd)
+    - Data.frames
+    - Plotting
+    - Making histograms
+2. [Spatial data and its forms](./2_spatial_data.Rmd)
+    - Points (sf package), typically used for observations data such as counts
+    - Lines (sf package), as the usual axial/segment networks used in space syntax
+    - Polygons (sf package), as plots of land or areas and rooms in buildings
+    - Pixels (stars package), equivalent to the GIS Raster, as used in Visibility Graph analysis
+3. [Space Syntax Analysis using the alcyon package](./3_space_syntax_analysis.Rmd)
+    - Axial/Segment analysis
+    - Visibility Graph Analysis
+    - Linear regression
+4. [Advanced: Graphs and J-Graphs](./4_advanced_j_graphs.Rmd)
+5. [Advanced: Isovist networks](./5_advanced_isovist_network.Rmd)
+
+Code is only "run" within chunks. Text outside the chunk (like this paragraph and the ones above) is interpreted as Markdown Text, a simple annotation format.
+
+Given that the aim of this document is to allow for reproducible workflows, all results and graphs should be created when all the chunks are run in order.
+
+Any function used in this document can be found in the Help documentation or by calling (for example, in the console) the name of the function with a question mark before it (i.e. ?plot)
 
 ## Basic functionality
 
@@ -36,14 +47,44 @@ As this data.frame contains only two variables, plotting it directly will produc
 plot(cars)
 ```
 
-We can see the variable names in the cars data.frame by calling the command names()
+We can see the variable (or column) names in the cars data.frame by calling the command names()
 ```{r}
 names(cars)
+```
+
+We can select specific values from the data.frame using [], for example the speed of the 5th car
+```{r}
+cars[5, "speed"]
+```
+
+We can also select a whole row, by leaving the second parameter in [] empty:
+```{r}
+cars[5, ]
+```
+
+To select multiple rows, we need to give two numbers, so we will combine them to a list using c()
+```{r}
+cars[c(5, 8), ]
+```
+
+We may also select a whole column, by leaving the first parameter in [] empty:
+```{r}
+cars[, "speed"]
+```
+
+A column may also be selected using the $ operator
+```{r}
+cars$speed
 ```
 
 To make a simple histogram of one of the variables use the command hist()
 ```{r}
 hist(cars$speed)
+```
+
+#### Exercise: Make a histogram of the cars' stopping distance ("dist" column)
+```{r}
+
 ```
 
 We can load our own data.frame by going to a spreadsheet application (such as excel), creating a few data points and exporting the sheet to a CSV. Then, we can load that CSV in R using read.csv()
@@ -60,3 +101,24 @@ In a similar fashion, doing a histogram of one of the variables:
 ```{r}
 hist(newCars$speed)
 ```
+Another way of selecting rows or columns is to provide to [] a list of boolean (True/False) values. Here's how to only select the second column: 
+```{r}
+newCars[, c(FALSE, TRUE)]
+```
+
+The same works with rows. Here's how to select the first 4 rows and the last:
+```{r}
+newCars[c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), ]
+```
+This allows us to filter a row using another row, i.e. to only get the cars in the A category:
+```{r}
+carsInA <- (newCars$category == "A")
+newCars[carsInA, ]
+```
+
+
+#### Exercise: Filter the newCars data.frame to get the speed of the cars in the C category:
+```{r}
+
+```
+
